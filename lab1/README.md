@@ -1,56 +1,42 @@
-# CarSharing prototype
+# CarSharing Client-Server Demo
 
-A small client-server prototype implementing the car sharing flows from the assignment: client login, query available cars, start rental, and end rental. The backend is a Flask service with in-memory data; `client.py` simulates the phone app.
-
-## Setup
-1. Use Python 3.10+.
-2. Install deps: `pip install -r requirements.txt`
-
-## Run the backend
-```bash
-python server.py
+## Backend (FastAPI)
 ```
-The service listens on `http://localhost:5000` by default.
-
-## Web frontend
-Launch the backend, then open the browser at `http://localhost:5000/app` (or the port you chose). The page lets you:
-- Register a client profile
-- Log in and store a session token
-- Fetch available cars
-- Start and end rentals
-- Toggle telematics state to test approval/denial on end rental
-
-## Run the client
-Each command hits the backend using JSON over HTTP. Add `--host` if you run on a different base URL.
-
-```bash
-# 1) Create profile (name, email, driver license, payment method, PIN)
-python client.py register --name "Ada Driver" --email ada@example.com --license RO-DRIV-1 --payment "visa-1234" --pin 1111
-
-# 2) Login and capture the token from the response
-python client.py login --email ada@example.com --pin 1111
-TOKEN=<token-from-login>
-
-# 3) Query available cars (requires token)
-python client.py cars --token "$TOKEN"
-
-# 4) Start rental for a VIN from the list
-python client.py start --token "$TOKEN" --vin VIN-001
-
-# 5) End rental for that VIN
-python client.py end --token "$TOKEN" --vin VIN-001
+cd backend
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+venv\Scripts\activate     # Windows
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
-## Simulating telematics checks
-Ending a rental can fail if doors are open or lights are on. You can toggle telematics state (as if sent by the car) before ending the rental:
-```bash
-# Mark doors open and lights on for VIN-001
-python client.py set-state --vin VIN-001 --doors open --lights on
-
-# Retry end rental will now return issues until you set the states back
-python client.py set-state --vin VIN-001 --doors closed --lights off
-python client.py end --token "$TOKEN" --vin VIN-001
+## Car Simulator (Telematics)
 ```
+cd car-simulator
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+venv\Scripts\activate     # Windows
+pip install -r requirements.txt
+python car_simulator.py   # enter VIN (e.g., VIN0001)
+```
+Run multiple terminals with different VINs to simulate several cars at once.
 
-## Architecture
-See `ARCHITECTURE.md` for the Mermaid-based class and sequence diagrams covering the system roles and interactions.
+## Frontend (React + Vite + TypeScript)
+```
+cd frontend
+npm install
+npm run dev
+```
+Open the displayed local URL; UI is centered and mobile-like.
+
+## Demo Scenario
+1. Open frontend, fill login fields (location near 47.16 / 27.59) and connect (REGISTER_CLIENT).
+2. Click "Query Available Cars" (QUERY_CARS_RESULT lists seeded cars sorted by distance).
+3. Select a car and click "Start Rental" (START_RENTAL_OK). Simulator unlocks car.
+4. Click "End Rental" while simulator has doors open/lights on/engine on to force denial (END_RENTAL_ERROR with recommended action).
+5. In simulator CLI, toggle doors/lights/engine to closed/off.
+6. Click "End Rental" again; backend queries state, locks car, finalizes rental (END_RENTAL_OK).
+
+## Notes
+- WebSocket endpoint: `ws://localhost:8000/ws`
+- Data is in-memory only; cars are pre-seeded near 47.16 / 27.59.
