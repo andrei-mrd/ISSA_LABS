@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CarSharing Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <header class="topbar">
+    <div class="brand">CarSharing</div>
+    <nav class="nav">
+      <a href="#register" class="nav-link" data-page-link="register">Register</a>
+      <a href="#login" class="nav-link" data-page-link="login">Login</a>
+      <a href="#dashboard" class="nav-link" data-page-link="dashboard">Dashboard</a>
+    </nav>
+    <button id="logout-btn" class="ghost small" type="button">Logout</button>
+  </header>
+
+  <main class="shell">
+    <section class="page active" data-page="register">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Step 1</p>
+          <h1>Create a client profile</h1>
+          <p class="lede">Provide identity, license, payment, and a PIN for future logins.</p>
+        </div>
+      </div>
+      <article class="card narrow">
+        <div class="card-head">
+          <h2>Register</h2>
+          <p class="muted">Fill all fields then submit.</p>
+        </div>
+        <form id="register-form" class="stack">
+          <div class="field">
+            <label>Name</label>
+            <input name="name" required />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input name="email" type="email" required />
+          </div>
+          <div class="field">
+            <label>Driver license</label>
+            <input name="license" required />
+          </div>
+          <div class="field">
+            <label>Payment method</label>
+            <input name="payment" placeholder="visa-1234" required />
+          </div>
+          <div class="field">
+            <label>PIN</label>
+            <input name="pin" type="password" required />
+          </div>
+          <button type="submit" class="primary">Register</button>
+        </form>
+      </article>
+    </section>
+
+    <section class="page" data-page="login">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Step 2</p>
+          <h1>Log in to get a session</h1>
+          <p class="lede">Use the email and PIN you registered. This issues a token for further calls.</p>
+        </div>
+      </div>
+      <article class="card narrow">
+        <div class="card-head">
+          <h2>Login</h2>
+          <p class="muted">Authenticate and save the token.</p>
+        </div>
+        <form id="login-form" class="stack">
+          <div class="field">
+            <label>Email</label>
+            <input name="email" type="email" required />
+          </div>
+          <div class="field">
+            <label>PIN</label>
+            <input name="pin" type="password" required />
+          </div>
+          <button type="submit" class="primary">Login</button>
+        </form>
+      </article>
+    </section>
+
+    <section class="page" data-page="dashboard">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Step 3</p>
+          <h1>Dashboard</h1>
+          <p class="lede">List cars, start rentals, end rentals, and simulate telematics states.</p>
+        </div>
+        <div class="status-card">
+          <div class="status-row">
+            <span class="pill" id="auth-pill">Logged out</span>
+            <button id="copy-token" class="ghost" type="button">Copy token</button>
+          </div>
+          <p class="label">Current client</p>
+          <p class="strong" id="client-email">—</p>
+          <p class="label">Session token</p>
+          <code id="session-token">—</code>
+        </div>
+      </div>
+
+      <section class="grid">
+        <article class="card wide">
+          <div class="card-head row">
+            <div>
+              <h2>Available cars</h2>
+              <p class="muted">Requires login. Fetch list and pick a VIN.</p>
+            </div>
+            <button id="refresh-cars" class="primary" type="button">Refresh cars</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>VIN</th>
+                  <th>Model</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="cars-body">
+                <tr><td colspan="4" class="muted center">No data yet</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <div class="card-head">
+            <h2>Start rental</h2>
+            <p class="muted">Pick a VIN from the table and unlock it.</p>
+          </div>
+          <form id="start-form" class="stack">
+            <div class="field">
+              <label>VIN</label>
+              <input name="vin" list="vin-options" required />
+              <datalist id="vin-options"></datalist>
+            </div>
+            <button type="submit" class="accent">Start rental</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>End rental</h2>
+            <p class="muted">Locks the car if telematics state is good.</p>
+          </div>
+          <form id="end-form" class="stack">
+            <div class="field">
+              <label>VIN</label>
+              <input name="vin" list="vin-options" required />
+            </div>
+            <button type="submit" class="accent">End rental</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>Telematics simulator</h2>
+            <p class="muted">Toggle state before ending a rental to see approvals or errors.</p>
+          </div>
+          <form id="state-form" class="stack">
+            <div class="field">
+              <label>VIN</label>
+              <input name="vin" list="vin-options" required />
+            </div>
+            <div class="field inline">
+              <label>Doors</label>
+              <select name="doors">
+                <option value="">Keep current</option>
+                <option value="closed">Closed</option>
+                <option value="open">Open</option>
+              </select>
+            </div>
+            <div class="field inline">
+              <label>Lights</label>
+              <select name="lights">
+                <option value="">Keep current</option>
+                <option value="off">Off</option>
+                <option value="on">On</option>
+              </select>
+            </div>
+            <div class="field inline">
+              <label>Lock</label>
+              <select name="locked">
+                <option value="">Keep current</option>
+                <option value="true">Locked</option>
+                <option value="false">Unlocked</option>
+              </select>
+            </div>
+            <button type="submit" class="ghost">Update state</button>
+          </form>
+        </article>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>API responses</h2>
+          <p class="muted">Latest response payloads will appear here.</p>
+        </div>
+        <pre id="log">Waiting for requests…</pre>
+      </section>
+    </section>
+
+    <div id="toast" class="toast" role="status">Ready.</div>
+  </main>
+</body>
+</html>
