@@ -50,6 +50,12 @@ def main() -> None:
     cars = sub.add_parser("cars", help="List available cars")
     cars.add_argument("--token", required=True)
 
+    me = sub.add_parser("me", help="Get current client profile")
+    me.add_argument("--token", required=True)
+
+    rentals = sub.add_parser("rentals", help="Get rental history for current client")
+    rentals.add_argument("--token", required=True)
+
     start = sub.add_parser("start", help="Start rental for a VIN")
     start.add_argument("--token", required=True)
     start.add_argument("--vin", required=True)
@@ -84,6 +90,10 @@ def main() -> None:
         send("POST", host, "/login", body={"email": args.email, "pin": args.pin})
     elif args.command == "cars":
         send("GET", host, "/cars", token=args.token)
+    elif args.command == "me":
+        send("GET", host, "/me", token=args.token)
+    elif args.command == "rentals":
+        send("GET", host, "/rentals/me", token=args.token)
     elif args.command == "start":
         send("POST", host, "/rentals/start", token=args.token, body={"vin": args.vin})
     elif args.command == "end":

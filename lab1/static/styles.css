@@ -192,7 +192,9 @@ td { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
 .badge.ok { background: rgba(70, 209, 180, 0.2); color: var(--primary); }
 .badge.busy { background: rgba(255, 171, 94, 0.2); color: #ffab5e; }
 
-pre#log {
+pre#log,
+pre#me-log,
+pre#rentals-log {
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--card-stroke);
   border-radius: 12px;

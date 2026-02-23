@@ -137,6 +137,30 @@
 
       <section class="grid">
         <article class="card">
+          <div class="card-head row">
+            <div>
+              <h2>My profile</h2>
+              <p class="muted">Data from authenticated profile endpoint.</p>
+            </div>
+            <button id="refresh-me" class="ghost" type="button">Refresh profile</button>
+          </div>
+          <pre id="me-log">Login to load profile.</pre>
+        </article>
+
+        <article class="card">
+          <div class="card-head row">
+            <div>
+              <h2>My rentals</h2>
+              <p class="muted">Shows active and ended rentals for current user.</p>
+            </div>
+            <button id="refresh-rentals" class="ghost" type="button">Refresh rentals</button>
+          </div>
+          <pre id="rentals-log">No rentals loaded.</pre>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="card">
           <div class="card-head">
             <h2>Start rental</h2>
             <p class="muted">Pick a VIN from the table and unlock it.</p>
@@ -201,6 +225,60 @@
             </div>
             <button type="submit" class="ghost">Update state</button>
           </form>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <h2>Car client</h2>
+            <p class="muted">Register a car-side client and process lock/unlock commands.</p>
+          </div>
+          <form id="car-register-form" class="stack">
+            <div class="field">
+              <label>VIN</label>
+              <input name="vin" list="vin-options" required />
+            </div>
+            <div class="field">
+              <label>API key</label>
+              <input name="apiKey" value="car-lab-key" required />
+            </div>
+            <button type="submit" class="ghost">Register car client</button>
+          </form>
+          <p class="label">Car token</p>
+          <code id="car-token">—</code>
+
+          <form id="car-heartbeat-form" class="stack" style="margin-top: 12px;">
+            <div class="field inline">
+              <label>Doors</label>
+              <select name="doors">
+                <option value="">Keep</option>
+                <option value="closed">Closed</option>
+                <option value="open">Open</option>
+              </select>
+            </div>
+            <div class="field inline">
+              <label>Lights</label>
+              <select name="lights">
+                <option value="">Keep</option>
+                <option value="off">Off</option>
+                <option value="on">On</option>
+              </select>
+            </div>
+            <div class="field inline">
+              <label>Lock</label>
+              <select name="locked">
+                <option value="">Keep</option>
+                <option value="true">Locked</option>
+                <option value="false">Unlocked</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Battery %</label>
+              <input name="battery" type="number" min="0" max="100" placeholder="100" />
+            </div>
+            <button type="submit" class="ghost">Send heartbeat</button>
+          </form>
+
+          <button id="car-poll-btn" class="accent" type="button" style="margin-top: 10px;">Poll & ACK commands</button>
         </article>
       </section>
 

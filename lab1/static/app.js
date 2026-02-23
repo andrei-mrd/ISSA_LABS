@@ -2,6 +2,7 @@ const state = {
   token: null,
   client: null,
   cars: [],
+  carToken: null,
 };
 
 const toastEl = document.getElementById('toast');
@@ -11,6 +12,9 @@ const vinOptions = document.getElementById('vin-options');
 const authPill = document.getElementById('auth-pill');
 const clientEmailEl = document.getElementById('client-email');
 const tokenEl = document.getElementById('session-token');
+const meLogEl = document.getElementById('me-log');
+const rentalsLogEl = document.getElementById('rentals-log');
+const carTokenEl = document.getElementById('car-token');
 const copyBtn = document.getElementById('copy-token');
 const logoutBtn = document.getElementById('logout-btn');
 const pages = document.querySelectorAll('.page');
@@ -41,11 +45,14 @@ function updateAuthUI() {
     copyBtn.disabled = true;
     logoutBtn.disabled = true;
   }
+
+  carTokenEl.textContent = state.carToken || '—';
 }
 
-async function api(path, { method = 'GET', body = null, auth = true } = {}) {
+async function api(path, { method = 'GET', body = null, auth = true, tokenOverride = null } = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  if (auth && state.token) headers['Authorization'] = `Bearer ${state.token}`;
+  const token = tokenOverride || state.token;
+  if (auth && token) headers.Authorization = `Bearer ${token}`;
 
   const resp = await fetch(path, {
     method,
@@ -93,7 +100,33 @@ async function refreshCars() {
     const data = await api('/cars');
     state.cars = data.cars || [];
     renderCars(state.cars);
-  showToast('Cars refreshed', 'ok');
+    showToast('Cars refreshed', 'ok');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function refreshProfile() {
+  if (!state.token) {
+    meLogEl.textContent = 'Login to load profile.';
+    return;
+  }
+  try {
+    const data = await api('/me');
+    meLogEl.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function refreshRentals() {
+  if (!state.token) {
+    rentalsLogEl.textContent = 'Login to load rentals.';
+    return;
+  }
+  try {
+    const data = await api('/rentals/me');
+    rentalsLogEl.textContent = JSON.stringify(data, null, 2);
   } catch (err) {
     console.error(err);
   }
@@ -117,7 +150,10 @@ function setPage(page) {
 function logout() {
   state.token = null;
   state.client = null;
+  state.carToken = null;
   renderCars([]);
+  meLogEl.textContent = 'Login to load profile.';
+  rentalsLogEl.textContent = 'No rentals loaded.';
   writeLog('Logged out.');
   updateAuthUI();
   setPage('login');
@@ -155,12 +191,17 @@ function hookForms() {
       updateAuthUI();
       showToast('Logged in', 'ok');
       setPage('dashboard');
+      refreshCars();
+      refreshProfile();
+      refreshRentals();
     } catch (err) {
       console.error(err);
     }
   });
 
   document.getElementById('refresh-cars').addEventListener('click', refreshCars);
+  document.getElementById('refresh-me').addEventListener('click', refreshProfile);
+  document.getElementById('refresh-rentals').addEventListener('click', refreshRentals);
 
   document.getElementById('start-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -170,6 +211,7 @@ function hookForms() {
       const res = await api('/rentals/start', { method: 'POST', body: { vin } });
       showToast(res.message || 'Rental started', 'ok');
       refreshCars();
+      refreshRentals();
     } catch (err) {
       console.error(err);
     }
@@ -183,6 +225,7 @@ function hookForms() {
       const res = await api('/rentals/end', { method: 'POST', body: { vin } });
       showToast(res.message || 'Rental ended', 'ok');
       refreshCars();
+      refreshRentals();
     } catch (err) {
       console.error(err);
     }
@@ -203,6 +246,70 @@ function hookForms() {
       const res = await api(`/cars/${vin}/telematics`, { method: 'PATCH', body, auth: false });
       showToast('Telematics updated', 'ok');
       writeLog(res);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  document.getElementById('car-register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const vin = form.vin.value.trim();
+    const apiKey = form.apiKey.value.trim();
+    if (!vin || !apiKey) return showToast('VIN and API key required', 'warn');
+
+    try {
+      const data = await api('/car/register', {
+        method: 'POST',
+        body: { vin, api_key: apiKey },
+        auth: false,
+      });
+      state.carToken = data.car_token;
+      updateAuthUI();
+      showToast(`Car client registered for ${vin}`, 'ok');
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  document.getElementById('car-heartbeat-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!state.carToken) return showToast('Register car client first', 'warn');
+    const form = e.target;
+    const body = {};
+    if (form.doors.value) body.doors_closed = form.doors.value === 'closed';
+    if (form.lights.value) body.lights_off = form.lights.value === 'off';
+    if (form.locked.value) body.locked = form.locked.value === 'true';
+    if (form.battery.value.trim()) body.battery_pct = Number(form.battery.value.trim());
+
+    try {
+      const res = await api('/car/heartbeat', {
+        method: 'POST',
+        body,
+        tokenOverride: state.carToken,
+      });
+      showToast(`Heartbeat sent (${res.pending_commands} pending)`, 'ok');
+      refreshCars();
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  document.getElementById('car-poll-btn').addEventListener('click', async () => {
+    if (!state.carToken) return showToast('Register car client first', 'warn');
+    try {
+      const data = await api('/car/commands', { tokenOverride: state.carToken });
+      const commands = data.commands || [];
+      for (const cmd of commands) {
+        await api('/car/ack', {
+          method: 'POST',
+          tokenOverride: state.carToken,
+          body: { command_id: cmd.id, success: true, note: 'ack from web car client' },
+        });
+      }
+      showToast(`Processed ${commands.length} command(s)`, 'ok');
+      refreshCars();
+      refreshRentals();
     } catch (err) {
       console.error(err);
     }
